@@ -1,23 +1,35 @@
 .disk {
-    transition: transform 0.5s ease-in-out, bottom 0.3s ease-in-out;
-    position: absolute;
-    cursor: grab;
+  transition: transform 0.5s ease-in-out, bottom 0.3s ease-in-out;
+  position: absolute;
+  cursor: grab;
+}
+
+.disk.animate-move {
+  animation: bounceMove 0.3s ease;
+}
+
+@keyframes bounceMove {
+  0% {
+    transform: translate(-50%, -10px) scale(1.05);
   }
-  
-  .disk.animate-move {
-    animation: bounceMove 0.3s ease;
+
+  50% {
+    transform: translate(-50%, 5px) scale(0.98);
   }
-  
-  @keyframes bounceMove {
-    0% {
-      transform: translate(-50%, -10px) scale(1.05);
-    }
-  
-    50% {
-      transform: translate(-50%, 5px) scale(0.98);
-    }
-  
-    100% {
-      transform: translate(-50%, 0px) scale(1);
-    }
+
+  100% {
+    transform: translate(-50%, 0px) scale(1);
   }
+}
+
+/* Garante que o body não tenha scroll vertical */
+html, body {
+  height: 100vh;
+  overflow-y: hidden;
+}
+
+/* Ajusta o contêiner do jogo para ocupar a altura disponível */
+#game {
+  height: 100%;
+  max-height: calc(100vh - 200px); /* Ajusta para caber com os outros elementos */
+}

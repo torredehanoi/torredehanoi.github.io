@@ -6,10 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Torre de Hanói</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 
-<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+<body class="bg-gray-50 h-screen flex flex-col items-center overflow-hidden">
   <h1 class="text-4xl font-bold text-gray-800 mb-6">Torre de Hanói</h1>
 
   <div class="flex flex-col items-center mb-4">
@@ -30,7 +30,7 @@
     </div>
   </div>
 
-  <div id="game" class="relative w-full max-w-4xl h-96 flex justify-around items-end mb-6">
+  <div id="game" class="relative w-full max-w-4xl flex-1 flex justify-around items-end">
     <div class="tower w-1/3 h-full flex justify-center items-end relative" data-id="0">
       <div class="bg-gray-700 w-2 h-full"></div>
     </div>
@@ -42,7 +42,7 @@
     </div>
   </div>
 
-  <div class="text-center text-gray-700 max-w-xl">
+  <div class="text-center text-gray-700 max-w-xl mb-4">
     <p class="mb-4">Mova todos os discos para a haste da direita, sem colocar um disco maior sobre um menor.</p>
     <div id="message" class="text-green-600 font-semibold text-lg"></div>
   </div>
