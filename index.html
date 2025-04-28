@@ -87,10 +87,16 @@
       transition: all 0.3s ease;
       cursor: grab;
       z-index: 1;
+      touch-action: none; /* Evita interferência do navegador em eventos de toque */
     }
 
     .disk:active {
       cursor: grabbing;
+    }
+
+    .disk.dragging {
+      opacity: 0.7;
+      transform: scale(1.1);
     }
 
     #info {
@@ -131,13 +137,13 @@
         width: 30%;
         height: 100%;
         margin: 0 5px;
-        padding: 0 5px; /* Adicionado para evitar que discos encostem nas bordas */
+        padding: 0 5px;
         box-sizing: border-box;
       }
 
       .disk {
-        height: 15px; /* Reduzido para melhor proporção */
-        margin: 2px 0; /* Margem menor */
+        height: 15px;
+        margin: 2px 0;
       }
 
       .pole {
@@ -184,6 +190,7 @@
     <li>Você só pode mover o disco que está no topo de uma torre.</li>
     <li>Um disco maior nunca pode ser colocado sobre um disco menor.</li>
   </ul>
+  <p>Agora você também pode arrastar os discos!</p>
 </section>
 
 <audio id="moveSound" src="https://freesound.org/data/previews/256/256113_3263906-lq.mp3"></audio>
@@ -194,7 +201,8 @@
   let moves = 0;
   let diskCount = 3;
   let soundEnabled = true;
-  let solutionMoves = []; // Armazena os movimentos da solução
+  let solutionMoves = [];
+  let currentDisk = null; // Disco sendo movido (para eventos de toque)
 
   // Função para iniciar o jogo
   function startGame() {
@@ -208,15 +216,19 @@
       tower.innerHTML = '<div class="pole"></div>';
     });
 
-    const isMobile = window.innerWidth <= 600; // Verifica se é mobile
+    const isMobile = window.innerWidth <= 600;
     for (let i = diskCount; i >= 1; i--) {
       const disk = document.createElement('div');
       disk.classList.add('disk');
       disk.dataset.size = i;
-      disk.style.width = isMobile ? (40 + i * 15) + 'px' : (60 + i * 20) + 'px'; // Reduz largura em mobile
+      disk.style.width = isMobile ? (40 + i * 15) + 'px' : (60 + i * 20) + 'px';
       disk.style.backgroundColor = getColor(i);
       disk.draggable = true;
       disk.ondragstart = drag;
+      // Adicionar eventos de toque
+      disk.addEventListener('touchstart', touchStart);
+      disk.addEventListener('touchmove', touchMove);
+      disk.addEventListener('touchend', touchEnd);
       document.getElementById('tower-0').appendChild(disk);
       towers[0].push(disk);
     }
@@ -239,6 +251,7 @@
     } else {
       ev.dataTransfer.setData("text/plain", disk.dataset.size);
       ev.dataTransfer.setData("parentId", parent.id);
+      disk.classList.add('dragging');
     }
   }
 
@@ -262,6 +275,73 @@
       fromTower.pop();
       toTowerArr.push(movingDisk);
       toTower.appendChild(movingDisk);
+      movingDisk.classList.remove('dragging');
+      moves++;
+      document.getElementById('moves').textContent = moves;
+      playSound();
+      checkWin();
+    } else {
+      movingDisk.classList.remove('dragging');
+      alert('Movimento inválido! Não pode colocar disco maior sobre menor.');
+    }
+  }
+
+  // Eventos de toque
+  function touchStart(ev) {
+    ev.preventDefault(); // Evita delay e comportamentos padrão
+    const disk = ev.target;
+    const parent = disk.parentElement;
+    if (disk !== parent.querySelector('.disk:last-child')) {
+      return; // Só permitir mover o disco do topo
+    }
+    currentDisk = disk;
+    disk.classList.add('dragging');
+    disk.style.position = 'absolute';
+    disk.style.zIndex = '1000';
+    moveDiskToTouch(ev.touches[0]);
+  }
+
+  function touchMove(ev) {
+    ev.preventDefault();
+    if (!currentDisk) return;
+    moveDiskToTouch(ev.touches[0]);
+  }
+
+  function touchEnd(ev) {
+    if (!currentDisk) return;
+    currentDisk.classList.remove('dragging');
+    currentDisk.style.position = '';
+    currentDisk.style.zIndex = '1';
+    currentDisk.style.left = '';
+    currentDisk.style.top = '';
+
+    // Encontrar a torre sob o ponto de toque
+    const touch = ev.changedTouches[0];
+    const toTower = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.tower');
+    if (!toTower) {
+      currentDisk = null;
+      return; // Soltou fora de uma torre
+    }
+
+    const fromTowerIndex = parseInt(currentDisk.parentElement.id.split('-')[1]);
+    const toTowerIndex = parseInt(toTower.id.split('-')[1]);
+    const size = parseInt(currentDisk.dataset.size);
+
+    const fromTower = towers[fromTowerIndex];
+    const toTowerArr = towers[toTowerIndex];
+
+    if (fromTower.length === 0) {
+      currentDisk = null;
+      return;
+    }
+
+    const movingDisk = fromTower[fromTower.length - 1];
+    const topDisk = toTowerArr[toTowerArr.length - 1];
+
+    if (!topDisk || size < parseInt(topDisk.dataset.size)) {
+      fromTower.pop();
+      toTowerArr.push(movingDisk);
+      toTower.appendChild(movingDisk);
       moves++;
       document.getElementById('moves').textContent = moves;
       playSound();
@@ -269,6 +349,15 @@
     } else {
       alert('Movimento inválido! Não pode colocar disco maior sobre menor.');
     }
+
+    currentDisk = null;
+  }
+
+  function moveDiskToTouch(touch) {
+    if (!currentDisk) return;
+    const rect = currentDisk.getBoundingClientRect();
+    currentDisk.style.left = `${touch.clientX - rect.width / 2}px`;
+    currentDisk.style.top = `${touch.clientY - rect.height / 2}px`;
   }
 
   function checkWin() {
@@ -310,7 +399,7 @@
       const move = solutionMoves[i];
       moveDisk(move.from, move.to);
       i++;
-    }, 800); // Tempo de espera entre os movimentos
+    }, 800);
   }
 
   // Gera a sequência de movimentos
