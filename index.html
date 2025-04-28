@@ -84,10 +84,10 @@
       margin: 5px 0;
       border-radius: 5px;
       background-color: #4a90e2;
-      transition: all 0.3s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease; /* Transição suave */
       cursor: grab;
       z-index: 1;
-      touch-action: none; /* Evita interferência do navegador em eventos de toque */
+      touch-action: none; /* Evita interferência do navegador */
     }
 
     .disk:active {
@@ -95,8 +95,8 @@
     }
 
     .disk.dragging {
-      opacity: 0.7;
-      transform: scale(1.1);
+      opacity: 0.8;
+      transform: translateY(-10px) scale(1.1); /* Levanta e aumenta levemente */
     }
 
     #info {
@@ -166,7 +166,7 @@
     <option value="6">6</option>
     <option value="7">7</option>
   </select>
-  <button onclick="startGame()">Reiniciar</button>
+  <button onclick="startGame()">Iniciar/Reiniciar</button>
   <button onclick="toggleSound()">Som: <span id="soundStatus">Ativado</span></button>
   <button onclick="solve()">Gabarito</button>
 </div>
@@ -202,7 +202,8 @@
   let diskCount = 3;
   let soundEnabled = true;
   let solutionMoves = [];
-  let currentDisk = null; // Disco sendo movido (para eventos de toque)
+  let currentDisk = null; // Disco sendo movido
+  let isDragging = false; // Flag para controle de arrastar
 
   // Função para iniciar o jogo
   function startGame() {
@@ -225,7 +226,6 @@
       disk.style.backgroundColor = getColor(i);
       disk.draggable = true;
       disk.ondragstart = drag;
-      // Adicionar eventos de toque
       disk.addEventListener('touchstart', touchStart);
       disk.addEventListener('touchmove', touchMove);
       disk.addEventListener('touchend', touchEnd);
@@ -247,7 +247,7 @@
     const disk = ev.target;
     const parent = disk.parentElement;
     if (disk !== parent.querySelector('.disk:last-child')) {
-      ev.preventDefault(); // Só permitir arrastar o disco do topo
+      ev.preventDefault();
     } else {
       ev.dataTransfer.setData("text/plain", disk.dataset.size);
       ev.dataTransfer.setData("parentId", parent.id);
@@ -288,23 +288,28 @@
 
   // Eventos de toque
   function touchStart(ev) {
-    ev.preventDefault(); // Evita delay e comportamentos padrão
+    ev.preventDefault();
     const disk = ev.target;
     const parent = disk.parentElement;
     if (disk !== parent.querySelector('.disk:last-child')) {
-      return; // Só permitir mover o disco do topo
+      return;
     }
     currentDisk = disk;
-    disk.classList.add('dragging');
-    disk.style.position = 'absolute';
-    disk.style.zIndex = '1000';
-    moveDiskToTouch(ev.touches[0]);
+    isDragging = false; // Ainda não começou a arrastar
+    disk.classList.add('dragging'); // Aplica o efeito de "levantar"
   }
 
   function touchMove(ev) {
     ev.preventDefault();
     if (!currentDisk) return;
-    moveDiskToTouch(ev.touches[0]);
+
+    isDragging = true; // Começou a arrastar
+    const touch = ev.touches[0];
+    const rect = currentDisk.getBoundingClientRect();
+    currentDisk.style.position = 'absolute';
+    currentDisk.style.zIndex = '1000';
+    currentDisk.style.left = `${touch.clientX - rect.width / 2}px`;
+    currentDisk.style.top = `${touch.clientY - rect.height / 2}px`;
   }
 
   function touchEnd(ev) {
@@ -315,12 +320,18 @@
     currentDisk.style.left = '';
     currentDisk.style.top = '';
 
+    if (!isDragging) {
+      // Se não arrastou, apenas remove o efeito e retorna
+      currentDisk = null;
+      return;
+    }
+
     // Encontrar a torre sob o ponto de toque
     const touch = ev.changedTouches[0];
     const toTower = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.tower');
     if (!toTower) {
       currentDisk = null;
-      return; // Soltou fora de uma torre
+      return;
     }
 
     const fromTowerIndex = parseInt(currentDisk.parentElement.id.split('-')[1]);
@@ -351,13 +362,7 @@
     }
 
     currentDisk = null;
-  }
-
-  function moveDiskToTouch(touch) {
-    if (!currentDisk) return;
-    const rect = currentDisk.getBoundingClientRect();
-    currentDisk.style.left = `${touch.clientX - rect.width / 2}px`;
-    currentDisk.style.top = `${touch.clientY - rect.height / 2}px`;
+    isDragging = false;
   }
 
   function checkWin() {
