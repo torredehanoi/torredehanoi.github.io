@@ -1,60 +1,343 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Torre de Hanói</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Estilização geral */
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #4a90e2;
+      color: white;
+      padding: 1rem;
+      font-size: 1.5rem;
+    }
+
+    #controls {
+      margin: 1rem 0;
+    }
+
+    button, select {
+      margin: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    select {
+      background-color: #ffffff;
+      border: 1px solid #ccc;
+    }
+
+    #game {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      height: 60vh;
+      margin: 2rem auto;
+      max-width: 900px;
+    }
+
+    .tower {
+      position: relative;
+      width: 30%;
+      height: 100%;
+      border: 2px solid #888;
+      background: #ddd;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      justify-content: flex-start;
+      border-radius: 10px;
+    }
+
+    .pole {
+      position: absolute;
+      bottom: 0;
+      width: 10px;
+      height: 80%;
+      background-color: #555;
+      z-index: 0;
+    }
+
+    .disk {
+      height: 30px;
+      margin: 5px 0;
+      border-radius: 5px;
+      background-color: #4a90e2;
+      transition: all 0.3s ease;
+      cursor: grab;
+      z-index: 1;
+    }
+
+    .disk:active {
+      cursor: grabbing;
+    }
+
+    #info {
+      margin: 1rem;
+    }
+
+    #instructions {
+      background: #ffffff;
+      margin: 1rem auto;
+      padding: 1rem;
+      max-width: 800px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 600px) {
+      #controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      button, select {
+        width: 80%;
+        max-width: 200px;
+        margin: 0.5rem 0;
+      }
+
+      #game {
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-end;
+        height: 60vh;
+        max-width: 100%;
+      }
+
+      .tower {
+        width: 30%;
+        height: 100%;
+        margin: 0 5px;
+        padding: 0 5px; /* Adicionado para evitar que discos encostem nas bordas */
+        box-sizing: border-box;
+      }
+
+      .disk {
+        height: 15px; /* Reduzido para melhor proporção */
+        margin: 2px 0; /* Margem menor */
+      }
+
+      .pole {
+        width: 8px;
+        height: 80%;
+      }
+    }
+  </style>
 </head>
+<body>
 
-<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
-  <h1 class="text-4xl font-bold text-gray-800 mb-6">Torre de Hanói</h1>
+<header>Torre de Hanói</header>
 
-  <div class="flex flex-col items-center mb-4">
-    <div class="mb-2 flex gap-2">
-      <label for="numDisks" class="text-gray-700 font-medium">Discos:</label>
-      <select id="numDisks" class="border rounded px-2 py-1">
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-      </select>
-      <button id="restartBtn"
-        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded">Iniciar/Reiniciar</button>
-      <button id="solutionBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">Mostrar
-        Gabarito</button>
-    </div>
-    <div class="text-sm text-gray-600">Movimentos: <span id="moves">0</span> | Mínimo: <span id="minMoves">0</span>
-    </div>
-  </div>
+<div id="controls">
+  <label for="diskCount">Número de discos:</label>
+  <select id="diskCount">
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+  </select>
+  <button onclick="startGame()">Reiniciar</button>
+  <button onclick="toggleSound()">Som: <span id="soundStatus">Ativado</span></button>
+  <button onclick="solve()">Gabarito</button>
+</div>
 
-  <div id="game" class="relative w-full max-w-4xl h-96 flex justify-around items-end mb-6">
-    <div class="tower w-1/3 h-full flex justify-center items-end relative" data-id="0">
-      <div class="bg-gray-700 w-2 h-full"></div>
-    </div>
-    <div class="tower w-1/3 h-full flex justify-center items-end relative" data-id="1">
-      <div class="bg-gray-700 w-2 h-full"></div>
-    </div>
-    <div class="tower w-1/3 h-full flex justify-center items-end relative" data-id="2">
-      <div class="bg-gray-700 w-2 h-full"></div>
-    </div>
-  </div>
+<div id="info">
+  Movimentos: <span id="moves">0</span> |
+  Mínimo possível: <span id="minMoves">0</span>
+</div>
 
-  <div class="text-center text-gray-700 max-w-xl">
-    <p class="mb-4">Mova todos os discos para a haste da direita, sem colocar um disco maior sobre um menor.</p>
-    <div id="message" class="text-green-600 font-semibold text-lg"></div>
-  </div>
+<div id="game">
+  <div class="tower" id="tower-0" ondragover="allowDrop(event)" ondrop="drop(event)"><div class="pole"></div></div>
+  <div class="tower" id="tower-1" ondragover="allowDrop(event)" ondrop="drop(event)"><div class="pole"></div></div>
+  <div class="tower" id="tower-2" ondragover="allowDrop(event)" ondrop="drop(event)"><div class="pole"></div></div>
+</div>
 
-  <div id="victoryMessage" class="hidden fixed inset-0 flex items-center justify-center z-50">
-    <div class="bg-white text-green-700 text-3xl font-bold px-8 py-6 rounded-xl shadow-xl border-4 border-green-500">
-      🎉 Parabéns! Você acertou! 🎉
-    </div>
-  </div>
+<section id="instructions">
+  <h2>Como jogar:</h2>
+  <p>O objetivo é mover todos os discos da primeira torre para a última, seguindo estas regras:</p>
+  <ul>
+    <li>Somente um disco pode ser movido por vez.</li>
+    <li>Você só pode mover o disco que está no topo de uma torre.</li>
+    <li>Um disco maior nunca pode ser colocado sobre um disco menor.</li>
+  </ul>
+</section>
 
-  <!-- JavaScript separado -->
-  <script src="script.js"></script>
+<audio id="moveSound" src="https://freesound.org/data/previews/256/256113_3263906-lq.mp3"></audio>
+
+<script>
+  // Variáveis globais
+  let towers;
+  let moves = 0;
+  let diskCount = 3;
+  let soundEnabled = true;
+  let solutionMoves = []; // Armazena os movimentos da solução
+
+  // Função para iniciar o jogo
+  function startGame() {
+    towers = [[], [], []];
+    moves = 0;
+    diskCount = parseInt(document.getElementById('diskCount').value);
+    document.getElementById('moves').textContent = moves;
+    document.getElementById('minMoves').textContent = Math.pow(2, diskCount) - 1;
+
+    document.querySelectorAll('.tower').forEach(tower => {
+      tower.innerHTML = '<div class="pole"></div>';
+    });
+
+    const isMobile = window.innerWidth <= 600; // Verifica se é mobile
+    for (let i = diskCount; i >= 1; i--) {
+      const disk = document.createElement('div');
+      disk.classList.add('disk');
+      disk.dataset.size = i;
+      disk.style.width = isMobile ? (40 + i * 15) + 'px' : (60 + i * 20) + 'px'; // Reduz largura em mobile
+      disk.style.backgroundColor = getColor(i);
+      disk.draggable = true;
+      disk.ondragstart = drag;
+      document.getElementById('tower-0').appendChild(disk);
+      towers[0].push(disk);
+    }
+  }
+
+  function getColor(i) {
+    const colors = ['#f44336', '#ff9800', '#ffc107', '#4caf50', '#2196f3', '#9c27b0', '#00bcd4'];
+    return colors[i - 1] || '#000';
+  }
+
+  function allowDrop(ev) {
+    ev.preventDefault();
+  }
+
+  function drag(ev) {
+    const disk = ev.target;
+    const parent = disk.parentElement;
+    if (disk !== parent.querySelector('.disk:last-child')) {
+      ev.preventDefault(); // Só permitir arrastar o disco do topo
+    } else {
+      ev.dataTransfer.setData("text/plain", disk.dataset.size);
+      ev.dataTransfer.setData("parentId", parent.id);
+    }
+  }
+
+  function drop(ev) {
+    ev.preventDefault();
+    const size = parseInt(ev.dataTransfer.getData("text/plain"));
+    const fromId = ev.dataTransfer.getData("parentId");
+    const toTower = ev.currentTarget;
+    const fromTowerIndex = parseInt(fromId.split('-')[1]);
+    const toTowerIndex = parseInt(toTower.id.split('-')[1]);
+
+    const fromTower = towers[fromTowerIndex];
+    const toTowerArr = towers[toTowerIndex];
+
+    if (fromTower.length === 0) return;
+
+    const movingDisk = fromTower[fromTower.length - 1];
+    const topDisk = toTowerArr[toTowerArr.length - 1];
+
+    if (!topDisk || size < parseInt(topDisk.dataset.size)) {
+      fromTower.pop();
+      toTowerArr.push(movingDisk);
+      toTower.appendChild(movingDisk);
+      moves++;
+      document.getElementById('moves').textContent = moves;
+      playSound();
+      checkWin();
+    } else {
+      alert('Movimento inválido! Não pode colocar disco maior sobre menor.');
+    }
+  }
+
+  function checkWin() {
+    if (towers[2].length === diskCount) {
+      setTimeout(() => {
+        alert(`Parabéns! Você completou o jogo em ${moves} movimentos.`);
+      }, 300);
+    }
+  }
+
+  function playSound() {
+    if (soundEnabled) {
+      const sound = document.getElementById('moveSound');
+      sound.currentTime = 0;
+      sound.play();
+    }
+  }
+
+  function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById('soundStatus').textContent = soundEnabled ? 'Ativado' : 'Desativado';
+  }
+
+  // Resolver automaticamente o jogo
+  function solve() {
+    if (!confirm("Deseja ver a solução automática? Isso irá reiniciar o jogo.")) return;
+    startGame();
+
+    solutionMoves = [];
+    generateSolution(diskCount, 0, 2, 1);
+    
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= solutionMoves.length) {
+        clearInterval(interval);
+        checkWin();
+        return;
+      }
+      const move = solutionMoves[i];
+      moveDisk(move.from, move.to);
+      i++;
+    }, 800); // Tempo de espera entre os movimentos
+  }
+
+  // Gera a sequência de movimentos
+  function generateSolution(n, from, to, aux) {
+    if (n === 0) return;
+    generateSolution(n - 1, from, aux, to);
+    solutionMoves.push({ from, to });
+    generateSolution(n - 1, aux, to, from);
+  }
+
+  function moveDisk(from, to) {
+    const fromTower = towers[from];
+    const toTower = towers[to];
+
+    if (fromTower.length === 0) return;
+
+    const movingDisk = fromTower.pop();
+    toTower.push(movingDisk);
+    document.getElementById(`tower-${to}`).appendChild(movingDisk);
+
+    moves++;
+    document.getElementById('moves').textContent = moves;
+    playSound();
+  }
+
+  window.onload = startGame;
+</script>
+
 </body>
-
 </html>
